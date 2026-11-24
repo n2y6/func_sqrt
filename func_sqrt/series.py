@@ -113,6 +113,13 @@ def from_expr(expr, N: int, var: sp.Symbol | str = "x") -> Series:
         raise ValueError(f"変数 {x} 以外の記号が含まれています: {names}")
     poly = sp.series(expr, x, 0, N + 1).removeO()
     poly = sp.expand(poly)
+    # x^x = 1 + x log x + ... や sqrt(x) のように x=0 で解析的でない関数は
+    # 展開に log x や分数べきが残るので、テイラー展開できないとしてはじく
+    if poly.has(sp.Order) or not poly.is_polynomial(x):
+        raise ValueError(
+            f"{str(expr).replace('**', '^')} は x=0 でテイラー展開できません "
+            "(log x や x の分数乗などが現れます)"
+        )
     return [clean(poly.coeff(x, n)) for n in range(N + 1)]
 
 

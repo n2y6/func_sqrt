@@ -92,3 +92,13 @@ def test_lenient_syntax():
     assert safe_parse("x/(1 - x)") == x / (1 - x)
     with pytest.raises(ApiError):
         safe_parse("xsin(x)")
+
+
+@pytest.mark.parametrize("f", ["x^x - 1", "sqrt(x)", "x*log(x)", "exp(1/x)"])
+def test_non_analytic_is_rejected_quickly(f):
+    import time
+
+    start = time.monotonic()
+    status, body = handle({"f": f, "n": "10"})
+    assert status == 400 and "テイラー展開できません" in body["error"]
+    assert time.monotonic() - start < 3
