@@ -1,0 +1,15 @@
+# api.naisu.moe 用 (このディレクトリがドキュメントルート)
+Options +ExecCGI
+AddHandler cgi-script .cgi
+DirectoryIndex func_sqrt.cgi
+
+RewriteEngine on
+RewriteCond %{HTTPS} !on
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+RewriteRule ^func_sqrt/?$ func_sqrt.cgi [QSA,L]
+
+<IfModule mod_headers.c>
+    Header unset Pragma
+    Header unset Expires
+</IfModule>
+ErrorDocument 404 "{\"ok\": false, \"error\": \"not found\"}"

@@ -19,6 +19,7 @@ import sympy as sp
 
 from . import __version__
 from .core import FunctionalRootError, fractional_iterate, functional_root, verify
+from .desmos import DesmosError, build_state, create_link
 from .formatting import format_json, format_series, format_table
 from .series import Series, from_derivatives, from_expr, parse_number
 
@@ -105,6 +106,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="表に K 桁の数値近似を併記する",
     )
     out.add_argument(
+        "--desmos",
+        action="store_true",
+        help="f と g を描いた Desmos グラフの共有リンクを作る (インターネット接続が必要)",
+    )
+    out.add_argument(
         "--check",
         action="store_true",
         help="結果を m 回合成して f に一致するか検証する",
@@ -152,6 +158,8 @@ def _interactive_input(var: str, input_fn: Callable[[str], str] = input) -> Seri
 
 
 def read_input(args: argparse.Namespace, input_fn: Callable[[str], str] = input) -> Series:
+    """入力を読んでテイラー係数を返す。式で入力されたときは args.f_expr にその式を入れる。"""
+    args.f_expr = None
     given = [x for x in (args.expr, args.derivs, args.coeffs) if x is not None]
     if len(given) > 1 or (given and args.interactive):
         raise ValueError("入力は 式 / --derivs / --coeffs / --interactive のうち 1 つだけ指定してください")
@@ -163,7 +171,8 @@ def read_input(args: argparse.Namespace, input_fn: Callable[[str], str] = input)
         N = DEFAULT_DEGREE if args.degree is None else args.degree
         if N < 1:
             raise ValueError("--degree は 1 以上にしてください")
-        return from_expr(args.expr, N, args.var)
+        args.f_expr = sp.sympify(args.expr, locals={args.var: sp.Symbol(args.var)})
+        return from_expr(args.f_expr, N, args.var)
     return _interactive_input(args.var, input_fn)
 
 
@@ -209,6 +218,17 @@ def run(args: argparse.Namespace, input_fn: Callable[[str], str] = input) -> int
         print(f"\n--- 結果: {_describe(args)} ---")
         print(format_table(b, digits=args.digits))
         print(f"\ng({args.var}) ~ {format_series(b, args.var)}")
+
+    if args.desmos:
+        try:
+            state = build_state(
+                a, b, f_expr=getattr(args, "f_expr", None),
+                order=None if args.iterate is not None else args.order,
+                iterate=args.iterate,
+            )
+            print(f"\nDesmos: {create_link(state)}")
+        except DesmosError as exc:
+            print(f"\nDesmos: リンクを作れませんでした ({exc})", file=sys.stderr)
 
     if args.check:
         if args.iterate is not None:

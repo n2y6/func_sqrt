@@ -111,6 +111,7 @@ python -m func_sqrt "4*x + x**2" -n 5 --multiplier -2
 | `-f json` | 係数・微分係数・式を JSON で |
 | `--digits K` | 表に K 桁の数値近似を併記 |
 | `--check` | 結果を合成して f に戻るか検証 |
+| `--desmos` | f・g・g(g(x)) を描いた Desmos グラフの共有リンクを作る |
 
 すべてのオプションは `python -m func_sqrt --help` で確認できます。
 
@@ -135,6 +136,54 @@ from_derivatives([0, 1, 0, 1])         # 微分係数から係数へ
 
 級数そのものの演算（`compose`, `iterate`, `inverse`, `to_derivatives` など）は
 `func_sqrt.series` にあります。
+
+## Web API
+
+`https://api.naisu.moe/func_sqrt` で同じ計算を JSON として返します（CORS 許可済み）。
+
+```bash
+curl "https://api.naisu.moe/func_sqrt?f=sinh(x)&n=11"
+```
+
+```json
+{
+  "ok": true,
+  "input": { "f": "sinh(x)" },
+  "order": 2,
+  "series": "x + (1/12)x^3 - (1/160)x^5 + ...",
+  "latex": "x + \\frac{1}{12} x^{3} - ...",
+  "coefficients": ["0", "1", "0", "1/12", ...],
+  "derivatives": ["0", "1", "0", "1/2", ...]
+}
+```
+
+| パラメータ | 内容 |
+| --- | --- |
+| `f` | f(x) の式（`sin cos tan sinh cosh tanh asin acos atan asinh acosh atanh exp log sqrt pi E I` と `x` が使えます。`^` も累乗） |
+| `derivs` / `coeffs` | `f` の代わりに微分係数・テイラー係数をカンマ区切りで |
+| `n` | 展開次数（既定 10、最大 20） |
+| `order` | 関数的 m 乗根の m（既定 2、最大 6） |
+| `iterate` | 分数回反復 `p/q`（`order` の代わり） |
+| `multiplier` | g'(0) に使う値 |
+| `desmos` | `1` にすると Desmos グラフのリンクを `desmos` に入れて返す |
+
+パラメータなしで `https://api.naisu.moe/` を開くと使い方を JSON で返します。
+エラー時は HTTP 400 と `{"ok": false, "error": "..."}`、計算が 10 秒を超えると 504 を返します。
+外部入力は許可した関数名・記号だけを受け付けるので、任意コードは実行されません。
+
+### Desmos グラフ
+
+`--desmos`（CLI）や `desmos=1`（API）を付けると、f(x)・g(x)・検算用の g(g(x)) を描いた
+Desmos グラフを保存して共有リンクを返します。
+
+```bash
+curl "https://api.naisu.moe/func_sqrt?f=sinh(x)&n=9&desmos=1"
+# → "desmos": "https://www.desmos.com/calculator/xxxxxxxxxx"
+```
+
+保存には Desmos のサイト内部で使われている非公開の API を使っています。
+公式に提供されたものではないため、仕様変更で動かなくなる可能性があります
+（その場合も計算結果は返り、`desmos_error` に理由が入ります）。
 
 ## 仕組み
 
@@ -168,7 +217,10 @@ func_sqrt/
 ├── series.py      # 形式的冪級数の演算 (積・合成・反復・逆関数・テイラー展開)
 ├── core.py        # 関数的平方根 / m 乗根 / 分数回反復
 ├── formatting.py  # 式・表・JSON への整形
-└── cli.py         # コマンドラインインターフェース
+├── cli.py         # コマンドラインインターフェース
+├── desmos.py      # Desmos グラフの共有リンク作成
+└── web.py         # Web API のリクエスト処理
+deploy/cgi/        # api.naisu.moe 用 CGI と .htaccess
 tests/             # pytest
 ```
 
