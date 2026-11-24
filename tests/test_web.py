@@ -63,3 +63,32 @@ def test_rejects_unsafe_input(evil):
 def test_bad_requests(params):
     status, body = handle(params)
     assert status == 400 and body["ok"] is False and body["error"]
+
+
+def test_numeric_branch_and_samples():
+    status, body = handle({"f": "sinh(x)", "n": "5", "samples": "1"})
+    assert body["numeric"]["result"][3] == pytest.approx(1 / 12)
+    assert body["numeric"]["root_order"] == 2
+    s = body["f_samples"]
+    assert len(s["y"]) == 801 and s["y"][400] == 0.0
+
+    status, body = handle({"f": "4*x + x^2", "n": "4", "branch": "-1"})
+    assert status == 200 and body["coefficients"][1] == "-2"
+
+    status, body = handle({"f": "x + x^2", "n": "5", "iterate": "3/2"})
+    assert body["numeric"]["root_order"] == 2
+    assert body["numeric"]["root"] != body["numeric"]["result"]
+
+    status, body = handle({"f": "log(1+x)", "n": "3", "samples": "1"})
+    assert body["f_samples"]["y"][0] is None  # log(1 - 5) は定義されない
+
+
+def test_lenient_syntax():
+    x = sp.Symbol("x")
+    assert safe_parse("2x + 3x^2") == 2 * x + 3 * x**2
+    assert safe_parse("e^x − 1") == sp.exp(x) - 1
+    assert safe_parse("ln(1+x)") == sp.log(1 + x)
+    assert safe_parse("arctan(x)") == sp.atan(x)
+    assert safe_parse("x/(1 - x)") == x / (1 - x)
+    with pytest.raises(ApiError):
+        safe_parse("xsin(x)")

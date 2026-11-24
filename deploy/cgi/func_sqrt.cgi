@@ -25,7 +25,7 @@ def respond(status, body, cache=False):
     out.write("Access-Control-Allow-Origin: *\r\n")
     out.write("Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n")
     out.write("Access-Control-Allow-Headers: Content-Type\r\n")
-    out.write("Cache-Control: " + ("public, max-age=86400" if cache else "no-store") + "\r\n")
+    # Cache-Control は .htaccess で付ける (親ディレクトリの設定と重ならないように)
     out.write("\r\n")
     out.flush()
     sys.stdout.buffer.write(json.dumps(body, ensure_ascii=False, indent=2).encode("utf-8"))

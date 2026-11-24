@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>関数的平方根 計算ツール（Functional Square Root Calculator） | naisu.moe</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="48x48" href="/icon-48.png">
+<link rel="icon" type="image/png" sizes="96x96" href="/icon-96.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="description" content="g(g(x)) = f(x) を満たす関数的平方根 g のテイラー展開を、分数・根号のまま厳密に計算する無料ツール。sinh x、e^x − 1 などの式を入れるだけで、関数的 m 乗根や f^[3/2] のような分数回反復、Desmos のグラフまで作れます。">
+<link rel="canonical" href="https://naisu.moe/func_sqrt/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="naisu.moe">
+<meta property="og:title" content="関数的平方根 計算ツール（Functional Square Root Calculator）">
+<meta property="og:description" content="g(g(x)) = f(x) となる g のテイラー展開を厳密計算。m 乗根・分数回反復・Desmos グラフにも対応。">
+<meta property="og:url" content="https://naisu.moe/func_sqrt/">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "関数的平方根 計算ツール",
+  "alternateName": "Functional Square Root Calculator",
+  "url": "https://naisu.moe/func_sqrt/",
+  "applicationCategory": "EducationalApplication",
+  "operatingSystem": "Any",
+  "inLanguage": ["ja", "en"],
+  "description": "Computes exact Taylor coefficients of the functional square root g(g(x)) = f(x), iterative roots and fractional iterates f^[p/q].",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" },
+  "isAccessibleForFree": true,
+  "sameAs": ["https://github.com/n2y6/func_sqrt"]
+}
+</script>
+<style>
+  body { margin:0; background:#fff; color:#222; font-family:system-ui,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif; line-height:1.8; }
+  main { max-width:640px; margin:0 auto; padding:40px 20px 64px; }
+  h1 { font-size:1.3rem; font-weight:600; margin:0 0 4px; }
+  .lead { color:#555; margin:0 0 28px; }
+  label { display:block; font-size:.9rem; color:#444; margin:18px 0 4px; }
+  select, textarea, button, input { font:inherit; }
+  select { padding:6px 8px; }
+  textarea, input[type=text] { width:100%; box-sizing:border-box; padding:8px; border:1px solid #bbb; border-radius:6px; font-family:ui-monospace,monospace; font-size:.95rem; }
+  input.short { width:7em; }
+  .row { display:flex; gap:16px; flex-wrap:wrap; align-items:end; }
+  .row > div { min-width:0; }
+  button { margin-top:20px; padding:8px 22px; border:1px solid #222; background:#222; color:#fff; border-radius:6px; cursor:pointer; }
+  button.sub { margin-top:10px; padding:4px 12px; background:#fff; color:#222; font-size:.85rem; }
+  .out { margin-top:28px; padding:16px; background:#f7f7f5; border-radius:8px; word-break:break-all; }
+  .out .g { font-family:ui-monospace,monospace; font-size:1.02rem; }
+  .check { color:#555; font-size:.9rem; margin-top:10px; }
+  .err { color:#b00020; margin-top:20px; }
+  .note { color:#777; font-size:.88em; }
+  .checks label { display:inline-flex; align-items:center; gap:4px; margin:4px 14px 0 0; }
+  details { margin-top:12px; font-size:.9rem; }
+  summary { cursor:pointer; color:#444; }
+  table { border-collapse:collapse; margin-top:8px; font-family:ui-monospace,monospace; font-size:.88rem; }
+  th, td { padding:2px 10px; text-align:right; border-bottom:1px solid #e6e6e6; }
+  th { color:#666; font-weight:500; }
+  .hidden { display:none; }
+  footer { margin-top:48px; color:#999; font-size:.85em; }
+  a { color:#1a5fb4; }
+</style>
+</head>
+<body>
+<main>
+  <h1>関数的平方根 計算ツール</h1>
+  <p class="lead">g(g(x)) = f(x) となる g のテイラー展開を、厳密計算（分数・根号）で求めます。m 乗根や f<sup>[3/2]</sup> のような分数回反復にも対応しています。<br><span lang="en" style="font-size:.9em;">Exact Taylor series of the functional square root (half-iterate) g∘g = f, iterative roots and fractional iterates.</span></p>
+
+  <label for="preset">f(x) の例</label>
+  <select id="preset">
+    <option value="sinh(x)">sinh x</option>
+    <option value="sin(x)">sin x</option>
+    <option value="e^x - 1">e^x − 1</option>
+    <option value="tan(x)">tan x</option>
+    <option value="log(1 + x)">log(1 + x)</option>
+    <option value="x + x^2">x + x²</option>
+    <option value="2x + x^2">2x + x²</option>
+    <option value="x/(1 - x)">x / (1 − x)</option>
+    <option value="atan(x)">arctan x</option>
+    <option value="custom">カスタム（下の欄を編集）</option>
+  </select>
+
+  <label for="mode">入力方法</label>
+  <select id="mode">
+    <option value="expr">式で入力</option>
+    <option value="derivs">導関数 f⁽ⁿ⁾(0) を並べる</option>
+    <option value="coeffs">テイラー係数 aₙ を並べる</option>
+  </select>
+
+  <div id="exprBox">
+    <label for="expr">f(x) =</label>
+    <input type="text" id="expr" spellcheck="false" autocomplete="off">
+    <p class="note">使えるもの：x, 数（分数・小数）, + − * / ^, 括弧, e^(…), exp, log（自然対数）, sqrt, sin, cos, tan, sinh, cosh, tanh, asin, acos, atan, asinh, acosh, atanh, pi。掛け算の * は 2x のように省略できます。</p>
+  </div>
+  <div id="listBox" class="hidden">
+    <label for="derivs" id="listLabel">f<sup>(0)</sup>(0), f<sup>(1)</sup>(0), f<sup>(2)</sup>(0), … をカンマ区切りで（分数・小数OK）</label>
+    <textarea id="derivs" rows="3" spellcheck="false"></textarea>
+  </div>
+
+  <div class="row">
+    <div>
+      <label for="N">使う次数 N</label>
+      <select id="N"></select>
+    </div>
+    <div>
+      <label for="kind">求めるもの</label>
+      <select id="kind">
+        <option value="2">関数的平方根 g∘g = f</option>
+        <option value="3">関数的 3 乗根 g∘g∘g = f</option>
+        <option value="4">関数的 4 乗根</option>
+        <option value="5">関数的 5 乗根</option>
+        <option value="iter">分数回反復 f<sup>[p/q]</sup></option>
+      </select>
+    </div>
+    <div id="iterBox" class="hidden">
+      <label for="iter">p/q</label>
+      <input type="text" id="iter" class="short" value="3/2" spellcheck="false">
+    </div>
+    <div>
+      <label for="branch">g′(0) の符号</label>
+      <select id="branch">
+        <option value="1">正（主値）</option>
+        <option value="-1">負</option>
+      </select>
+    </div>
+  </div>
+
+  <button id="run" type="button">計算する</button>
+
+  <div id="result"></div>
+
+  <h2 style="font-size:1.05rem;margin-top:36px;">グラフ</h2>
+  <p class="note" id="graphNote">f(x)（青）と g(x)（緑）、それに g(g(x))（赤の破線）を重ねています。赤が青に重なるほど、関数的平方根として正しく求まっています。級数は x=0 のまわりの近似なので、0から離れるとずれます。</p>
+  <div class="row">
+    <div>
+      <label for="range">表示範囲</label>
+      <select id="range">
+        <option value="1">−1 〜 1</option>
+        <option value="2" selected>−2 〜 2</option>
+        <option value="3">−3 〜 3</option>
+        <option value="5">−5 〜 5</option>
+      </select>
+    </div>
+    <div class="checks">
+      <label><input type="checkbox" id="showF" checked> f</label>
+      <label><input type="checkbox" id="showFt"> f のテイラー多項式</label>
+      <label><input type="checkbox" id="showG" checked> <span id="gName">g</span></label>
+      <label><input type="checkbox" id="showGG" checked> 検算</label>
+    </div>
+  </div>
+  <div id="graph" style="margin-top:12px;"></div>
+  <p class="note" id="legend"></p>
+
+  <p class="note">前提：f(0) = 0、f′(0) ≠ 0。計算は <a href="https://api.naisu.moe/">api.naisu.moe</a>（sympy による厳密計算）で行っています。元のPython実装：<a href="https://github.com/n2y6/func_sqrt">n2y6/func_sqrt</a></p>
+
+  <h2 style="font-size:1.05rem;margin-top:36px;">関数的平方根とは</h2>
+  <p class="note" style="color:#444;font-size:.92em;">関数 f に対して、2 回合成すると f になる関数 g（g(g(x)) = f(x)）を f の<strong>関数的平方根</strong>（半反復, half-iterate）といいます。たとえば sinh x の関数的平方根は x + x<sup>3</sup>/12 − x<sup>5</sup>/160 + … と展開されます。同じように、m 回合成して f になる g を<strong>関数的 m 乗根</strong>、それを p 回合成したものを<strong>分数回反復</strong> f<sup>[p/q]</sup> と呼びます。</p>
+  <p class="note" style="color:#444;font-size:.92em;">このツールは、x = 0 が不動点（f(0) = 0）で f′(0) ≠ 0 の関数について、g = b<sub>1</sub>x + b<sub>2</sub>x<sup>2</sup> + … とおいて係数を低い次数から順に決めていきます。b<sub>1</sub> は f′(0) の m 乗根で、b<sub>n</sub> は x<sup>n</sup> の係数を比べると一次方程式で決まります。計算は分数と根号のまま行うので、浮動小数点の誤差はありません。</p>
+
+  <footer><a href="/">naisu.moe</a></footer>
+</main>
+
+<script>
+"use strict";
+const API="https://api.naisu.moe/func_sqrt";
+const MAXN=20;
+const $=id=>document.getElementById(id);
+const presetSel=$("preset"),modeSel=$("mode"),exprBox=$("expr"),derivsBox=$("derivs"),nSel=$("N"),kindSel=$("kind"),iterBox=$("iter"),branchSel=$("branch");
+for(let n=3;n<=MAXN;n++){const o=document.createElement("option");o.value=n;o.textContent=n;nSel.appendChild(o);}
+nSel.value="11";
+
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+/* sympy の表記を読みやすく：x^3 → x³ の上付き, sqrt(2) → √2, * を省く */
+function pretty(s){
+  return escapeHtml(s)
+    .replace(/sqrt\((\d+)\)/g,"√$1")
+    .replace(/\*\*/g,"^")
+    .replace(/(\d+)\^\(1\/2\)/g,"√$1")
+    .replace(/(\d+)\^\(1\/3\)/g,"∛$1")
+    .replace(/(\d+)\^\(1\/4\)/g,"∜$1")
+    .replace(/(\d+)\^\((\d+)\/(\d+)\)/g,"$1<sup>$2/$3</sup>")
+    .replace(/(\w|\))\^(\d+)/g,"$1<sup>$2</sup>")
+    .replace(/\*/g,"·");
+}
+function evalSeries(c,x){let s=0;for(let n=c.length-1;n>=0;n--)s=s*x+c[n];return s;}
+
+/* ---------- 入力欄 ---------- */
+function syncVisibility(){
+  const mode=modeSel.value;
+  $("exprBox").classList.toggle("hidden",mode!=="expr");
+  $("listBox").classList.toggle("hidden",mode==="expr");
+  $("listLabel").innerHTML=mode==="derivs"
+    ?"f<sup>(0)</sup>(0), f<sup>(1)</sup>(0), f<sup>(2)</sup>(0), … をカンマ区切りで（分数・小数・sqrt(2) などOK）"
+    :"a<sub>0</sub>, a<sub>1</sub>, a<sub>2</sub>, …（f(x) = a<sub>0</sub> + a<sub>1</sub>x + a<sub>2</sub>x<sup>2</sup> + …）をカンマ区切りで";
+  $("iterBox").classList.toggle("hidden",kindSel.value!=="iter");
+}
+let lastData=null;
+/* 入力方法を切り替えたら、直前の f を新しい形式で書き直す */
+function convertListTo(mode){
+  if(!lastData||!lastData.input_coefficients)return;
+  derivsBox.value=(mode==="derivs"?lastData.input_derivatives:lastData.input_coefficients).join(", ");
+}
+presetSel.addEventListener("change",()=>{if(presetSel.value==="custom")return;modeSel.value="expr";exprBox.value=presetSel.value;syncVisibility();compute();});
+modeSel.addEventListener("change",()=>{if(modeSel.value!=="expr")convertListTo(modeSel.value);syncVisibility();});
+exprBox.addEventListener("input",()=>{presetSel.value=[...presetSel.options].some(o=>o.value===exprBox.value)?exprBox.value:"custom";});
+exprBox.addEventListener("keydown",e=>{if(e.key==="Enter")compute();});
+derivsBox.addEventListener("input",()=>{presetSel.value="custom";});
+kindSel.addEventListener("change",()=>{syncVisibility();compute();});
+iterBox.addEventListener("keydown",e=>{if(e.key==="Enter")compute();});
+[nSel,branchSel].forEach(el=>el.addEventListener("change",compute));
+$("run").addEventListener("click",compute);
+["range","showF","showFt","showG","showGG"].forEach(id=>$(id).addEventListener("change",updateGraph));
+
+function buildParams(){
+  const p=new URLSearchParams();const mode=modeSel.value;const N=Number(nSel.value);
+  if(mode==="expr"){const f=exprBox.value.trim();if(!f)throw new Error("f(x) の式を入力してください。");p.set("f",f);p.set("n",String(N));p.set("samples","1");}
+  else{const vals=derivsBox.value.split(",").map(s=>s.trim()).filter(s=>s.length);
+    if(vals.length<2)throw new Error("値を2つ以上入力してください。");p.set(mode,vals.slice(0,N+1).join(","));}
+  if(kindSel.value==="iter")p.set("iterate",iterBox.value.trim());else p.set("order",kindSel.value);
+  if(branchSel.value==="-1")p.set("branch","-1");
+  return p;
+}
+
+/* ---------- 計算（API） ---------- */
+let seq=0;
+async function compute(){
+  const result=$("result");const my=++seq;
+  let params;
+  try{params=buildParams();}catch(e){result.innerHTML=`<p class="err">${escapeHtml(e.message)}</p>`;return;}
+  saveToUrl();
+  result.innerHTML=`<div class="out"><div class="check">計算中…</div></div>`;
+  let data;
+  try{
+    const res=await fetch(API+"?"+params.toString());
+    data=await res.json();
+  }catch(e){
+    if(my!==seq)return;
+    result.innerHTML=`<p class="err">計算サーバー（api.naisu.moe）に接続できませんでした。時間をおいて試してください。</p>`;return;
+  }
+  if(my!==seq)return; /* 古いリクエストの結果は捨てる */
+  if(!data.ok){result.innerHTML=`<p class="err">${escapeHtml(data.error||"計算に失敗しました。")}</p>`;return;}
+  lastData=data;render(data,params);
+}
+
+function compositionName(q){return Array(q).fill("g").join("(")+"(x"+")".repeat(q);}
+
+function render(data,params){
+  const isIter=data.iterate!==undefined;
+  const q=data.numeric?data.numeric.root_order:2;
+  const name=isIter?`f<sup>[${escapeHtml(data.iterate)}]</sup>`:"g";
+  const checkName=q===1?"f(x)":compositionName(q);
+  const num=data.numeric;
+  let check="";
+  if(num&&num.root){
+    const x0=0.1;const fv=fAt(x0);let y=x0;for(let i=0;i<q;i++)y=evalSeries(num.root,y);
+    check=`<div class="check">検算（x=0.1）：f(x) = ${fv.toFixed(10)}、${checkName} = ${y.toFixed(10)}</div>`;
+  }
+  let rows="";
+  for(let n=1;n<data.coefficients.length;n++){
+    const approx=num&&num.result?num.result[n].toPrecision(8):"—";
+    rows+=`<tr><td>${n}</td><td>${pretty(data.coefficients[n])}</td><td>${pretty(data.derivatives[n])}</td><td>${approx}</td></tr>`;
+  }
+  const series=pretty(data.series.replace(/ \+ O\(x\^\d+\)$/,""));
+  $("result").innerHTML=`<div class="out"><div class="g">${name}(x) ~ ${series}</div>${check}`+
+    `<details><summary>係数の表</summary><table><tr><th>n</th><th>b<sub>n</sub></th><th>${name}<sup>(n)</sup>(0)</th><th>近似値</th></tr>${rows}</table></details>`+
+    `<button class="sub" type="button" id="copyLatex">LaTeX をコピー</button> `+
+    `<button class="sub" type="button" id="copyUrl">この計算の URL をコピー</button> `+
+    `<button class="sub" type="button" id="desmosBtn">Desmos で開く</button>`+
+    `<div class="check" id="actionMsg"></div></div>`;
+  $("copyLatex").onclick=()=>copyText(`${isIter?"h":"g"}(x) = ${data.latex}`,"LaTeX をコピーしました。");
+  $("copyUrl").onclick=()=>copyText(location.href,"URL をコピーしました。");
+  $("desmosBtn").onclick=()=>openDesmos(params);
+  $("gName").innerHTML=name;
+  $("graphNote").innerHTML=isIter
+    ?`f(x)（青）と ${name}(x)（緑）、それに ${q} 乗根を ${q} 回合成したもの（赤の破線）を重ねています。赤が青に重なるほど、正しく求まっています。級数は x=0 のまわりの近似なので、0から離れるとずれます。`
+    :`f(x)（青）と g(x)（緑）、それに ${checkName}（赤の破線）を重ねています。赤が青に重なるほど、正しく求まっています。級数は x=0 のまわりの近似なので、0から離れるとずれます。`;
+  $("legend").innerHTML=`<span style="color:#1a5fb4;">―</span> f(x)　<span style="color:#2a9d3a;">―</span> ${name}(x)　<span style="color:#d03030;">- -</span> ${checkName}`;
+  updateGraph();
+}
+
+/* f(x) の値：式で入力したときはサーバーが計算した実際の値、そうでなければテイラー多項式 */
+function fAt(x){
+  const d=lastData;if(!d)return NaN;
+  const s=d.f_samples;
+  if(s){const t=(x-s.x0)/s.dx;const i=Math.floor(t);const y0=s.y[i],y1=s.y[i+1];
+    if(y0==null||y1==null)return NaN;return y0+(y1-y0)*(t-i);}
+  return d.numeric&&d.numeric.f?evalSeries(d.numeric.f,x):NaN;
+}
+
+/* ---------- グラフ ---------- */
+function updateGraph(){
+  const el=$("graph");const d=lastData;if(!el||!d)return;
+  const num=d.numeric;
+  if(!num||!num.result){el.innerHTML=`<p class="note">係数に虚数が含まれるため、グラフは描けません。</p>`;return;}
+  const R=Number($("range").value);
+  const W=600,H=420,XMIN=-R,XMAX=R,YMIN=-R,YMAX=R;
+  const px=x=>(x-XMIN)/(XMAX-XMIN)*W,py=y=>H-(y-YMIN)/(YMAX-YMIN)*H;
+  let s=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;border:1px solid #ddd;border-radius:8px;background:#fff;" role="img">`;
+  s+=`<defs><clipPath id="plotclip"><rect x="0" y="0" width="${W}" height="${H}"/></clipPath></defs>`;
+  for(let gx=-R;gx<=R;gx++){s+=`<line x1="${px(gx)}" y1="0" x2="${px(gx)}" y2="${H}" stroke="${gx===0?"#999":"#e6e6e6"}" stroke-width="1"/>`;}
+  for(let gy=-R;gy<=R;gy++){s+=`<line x1="0" y1="${py(gy)}" x2="${W}" y2="${py(gy)}" stroke="${gy===0?"#999":"#e6e6e6"}" stroke-width="1"/>`;}
+  for(let gx=-R;gx<=R;gx++){if(gx!==0)s+=`<text x="${px(gx)}" y="${py(0)+14}" font-size="10" fill="#888" text-anchor="middle">${gx}</text>`;}
+  for(let gy=-R;gy<=R;gy++){if(gy!==0)s+=`<text x="${px(0)+5}" y="${py(gy)-4}" font-size="10" fill="#888">${gy}</text>`;}
+  const path=(fn,color,dash,width=2)=>{let dd="";let pen=false;
+    for(let i=0;i<=400;i++){const x=XMIN+(XMAX-XMIN)*i/400;const y=fn(x);
+      if(!isFinite(y)||Math.abs(y)>1e6){pen=false;continue;}dd+=(pen?"L":"M")+px(x).toFixed(1)+" "+py(y).toFixed(1);pen=true;}
+    return`<path d="${dd}" fill="none" stroke="${color}" stroke-width="${width}"${dash?` stroke-dasharray="${dash}"`:""} clip-path="url(#plotclip)"/>`;};
+  const on=id=>$(id).checked;
+  const q=num.root_order;
+  if(on("showFt")&&num.f)s+=path(x=>evalSeries(num.f,x),"#1a5fb4","2 3",1.5);
+  if(on("showF"))s+=path(fAt,"#1a5fb4",null);
+  if(on("showG"))s+=path(x=>evalSeries(num.result,x),"#2a9d3a",null);
+  if(on("showGG")&&num.root&&q>1)s+=path(x=>{let y=x;for(let i=0;i<q;i++)y=evalSeries(num.root,y);return y;},"#d03030","6 4");
+  s+="</svg>";el.innerHTML=s;
+}
+
+/* ---------- ボタン ---------- */
+function copyText(text,msg){
+  const done=()=>{const el=$("actionMsg");if(el)el.textContent=msg;};
+  if(navigator.clipboard)navigator.clipboard.writeText(text).then(done,()=>prompt("コピーしてください",text));else prompt("コピーしてください",text);
+}
+async function openDesmos(params){
+  const msg=$("actionMsg");msg.textContent="Desmos のリンクを作っています…";
+  const p=new URLSearchParams(params);p.set("desmos","1");p.delete("samples");
+  const win=window.open("about:blank","_blank");
+  try{
+    const data=await (await fetch(API+"?"+p.toString())).json();
+    if(!data.ok)throw new Error(data.error||"計算に失敗しました");
+    if(!data.desmos)throw new Error(data.desmos_error||"リンクを作れませんでした");
+    if(win)win.location=data.desmos;
+    msg.innerHTML=`Desmos：<a href="${escapeHtml(data.desmos)}" target="_blank" rel="noopener">${escapeHtml(data.desmos)}</a>`;
+  }catch(e){if(win)win.close();msg.textContent="Desmos のリンクを作れませんでした（"+e.message+"）";}
+}
+
+/* ---------- URL に入力を保存・復元 ---------- */
+function saveToUrl(){
+  const p=new URLSearchParams();const mode=modeSel.value;
+  if(mode==="expr")p.set("f",exprBox.value.trim());else p.set(mode,derivsBox.value.replace(/\s+/g,""));
+  p.set("n",nSel.value);
+  if(kindSel.value==="iter")p.set("t",iterBox.value.trim());else if(kindSel.value!=="2")p.set("m",kindSel.value);
+  if(branchSel.value==="-1")p.set("neg","1");
+  history.replaceState(null,"","?"+p.toString());
+}
+function loadFromUrl(){
+  const p=new URLSearchParams(location.search);
+  kindSel.value="2";branchSel.value="1";nSel.value="11";
+  if(p.has("derivs")||p.has("coeffs")){const mode=p.has("derivs")?"derivs":"coeffs";modeSel.value=mode;derivsBox.value=p.get(mode).split(",").join(", ");presetSel.value="custom";}
+  else{const f=p.get("f")||"sinh(x)";modeSel.value="expr";exprBox.value=f;presetSel.value=[...presetSel.options].some(o=>o.value===f)?f:"custom";}
+  const n=Number(p.get("n"));if(n>=3&&n<=MAXN)nSel.value=String(n);
+  if(p.has("t")){kindSel.value="iter";iterBox.value=p.get("t");}else if(["3","4","5"].includes(p.get("m")))kindSel.value=p.get("m");
+  if(p.get("neg")==="1")branchSel.value="-1";
+}
+loadFromUrl();
+syncVisibility();
+compute();
+</script>
+</body>
+</html>

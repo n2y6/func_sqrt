@@ -13,13 +13,17 @@ import re
 from typing import Mapping
 
 import sympy as sp
-from sympy.parsing.sympy_parser import parse_expr, standard_transformations
+from sympy.parsing.sympy_parser import (
+    implicit_multiplication,
+    parse_expr,
+    standard_transformations,
+)
 
 from . import __version__
-from .core import FunctionalRootError, fractional_iterate, functional_root
+from .core import FunctionalRootError, functional_root, principal_root
 from .desmos import DesmosError, build_state, create_link
 from .formatting import format_series
-from .series import from_derivatives, from_expr, to_derivatives
+from .series import from_derivatives, from_expr, iterate, to_derivatives
 
 __all__ = ["ApiError", "LIMITS", "safe_parse", "handle", "usage"]
 
@@ -40,7 +44,13 @@ _FUNCTIONS = {
         "exp log sqrt"
     ).split()
 }
-_CONSTANTS = {"pi": sp.pi, "E": sp.E, "I": sp.I}
+_CONSTANTS = {"pi": sp.pi, "E": sp.E, "e": sp.E, "I": sp.I}
+_ALIASES = {
+    "ln": sp.log,
+    "arcsin": sp.asin, "arccos": sp.acos, "arctan": sp.atan,
+    "arcsinh": sp.asinh, "arccosh": sp.acosh, "arctanh": sp.atanh,
+}
+_NORMALIZE = str.maketrans({"−": "-", "–": "-", "×": "*", "÷": "/", "・": "*"})
 
 _ALLOWED_CHARS = re.compile(r"[0-9A-Za-z+\-*/^().\s]*")
 _IDENT = re.compile(r"[A-Za-z_][A-Za-z_0-9]*")
@@ -54,7 +64,7 @@ def safe_parse(text: str, *, allow_x: bool = True) -> sp.Expr:
     """許可された関数・定数・変数 x だけからなる式を sympy の式に変換する。"""
     if text is None:
         raise ApiError("値がありません")
-    text = text.strip()
+    text = text.translate(_NORMALIZE).strip()
     if not text:
         raise ApiError("空の式です")
     if len(text) > LIMITS["max_input_length"]:
@@ -62,6 +72,7 @@ def safe_parse(text: str, *, allow_x: bool = True) -> sp.Expr:
     if not _ALLOWED_CHARS.fullmatch(text):
         raise ApiError("使えない文字が含まれています")
     allowed = dict(_FUNCTIONS)
+    allowed.update(_ALIASES)
     allowed.update(_CONSTANTS)
     if allow_x:
         allowed["x"] = X
@@ -81,7 +92,8 @@ def safe_parse(text: str, *, allow_x: bool = True) -> sp.Expr:
             text.replace("^", "**"),
             local_dict=allowed,
             global_dict=global_dict,
-            transformations=standard_transformations,
+            # 2x, 3sin(x) のような掛け算の省略も受け付ける
+            transformations=standard_transformations + (implicit_multiplication,),
         )
     except Exception as exc:  # 構文エラーなど
         raise ApiError(f"式を解釈できません: {text}") from exc
@@ -119,6 +131,47 @@ def _int_param(params: Mapping[str, str], name: str, default: int, lo: int, hi: 
     return value
 
 
+def _branch_multiplier(params: Mapping[str, str], a, q: int, multiplier):
+    """branch=-1 なら主値の m 乗根の符号を反転したものを g'(0) に使う。"""
+    if multiplier is not None or params.get("branch", "") not in ("-1", "neg"):
+        return multiplier
+    if len(a) < 2 or a[1] == 0:
+        return None
+    if q % 2 == 1:
+        raise ApiError(f"{q} 乗根は実数では 1 つだけなので、g'(0) の負の枝は選べません")
+    return -principal_root(a[1], q)
+
+
+def _floats(coeffs) -> list | None:
+    try:
+        return [float(sp.N(c)) for c in coeffs]
+    except TypeError:  # 虚数を含む
+        return None
+
+
+SAMPLE_RANGE = (-5.0, 5.0, 801)
+
+
+def _samples(expr) -> dict | None:
+    """グラフ用に f(x) を等間隔の点で数値計算する (定義されない点は null)。"""
+    import math
+
+    lo, hi, count = SAMPLE_RANGE
+    try:
+        fn = sp.lambdify(X, expr, modules="math")
+    except Exception:
+        return None
+    dx = (hi - lo) / (count - 1)
+    ys = []
+    for i in range(count):
+        try:
+            y = float(fn(lo + i * dx))
+            ys.append(round(y, 8) if math.isfinite(y) and abs(y) < 1e9 else None)
+        except (ValueError, ZeroDivisionError, OverflowError, TypeError):
+            ys.append(None)
+    return {"x0": lo, "dx": dx, "y": ys}
+
+
 def usage() -> dict:
     """API の説明 (ルートにアクセスしたときに返す)。"""
     return {
@@ -134,9 +187,11 @@ def usage() -> dict:
             "order": f"関数的 m 乗根の m (既定 2、最大 {LIMITS['max_order']})",
             "iterate": "分数回反復 p/q (order の代わり。例: 1/2, 3/2, -1)",
             "multiplier": "g'(0) に使う値 (省略時は主値)",
+            "branch": "-1 にすると g'(0) に主値の符号を反転したものを使う (multiplier を省略したとき)",
+            "samples": "1 にするとグラフ用に f(x) の値 (x = -5〜5) を f_samples に入れて返す",
             "desmos": "1 にすると f と g を描いた Desmos グラフのリンクを desmos に入れて返す",
         },
-        "functions": sorted(_FUNCTIONS) + sorted(_CONSTANTS),
+        "functions": sorted(_FUNCTIONS) + sorted(_ALIASES) + sorted(_CONSTANTS),
         "example": "/func_sqrt?f=sinh(x)&n=11",
         "source": "https://github.com/n2y6/func_sqrt",
     }
@@ -184,22 +239,38 @@ def _compute(params: Mapping[str, str], desmos_link=create_link) -> dict:
         lim = LIMITS["max_iterate_part"]
         if abs(t.p) > lim or t.q > lim:
             raise ApiError(f"iterate の分子・分母は絶対値 {lim} 以下にしてください")
-        b = fractional_iterate(a, t, multiplier=multiplier)
+        q = int(t.q)
+        multiplier = _branch_multiplier(params, a, q, multiplier)
+        root = a if q == 1 else functional_root(a, q, multiplier=multiplier)
+        b = iterate(root, int(t.p), len(a) - 1)
         result["iterate"] = str(t)
     else:
-        m = _int_param(params, "order", 2, 1, LIMITS["max_order"])
-        b = functional_root(a, m, multiplier=multiplier)
-        result["order"] = m
+        q = _int_param(params, "order", 2, 1, LIMITS["max_order"])
+        multiplier = _branch_multiplier(params, a, q, multiplier)
+        root = b = functional_root(a, q, multiplier=multiplier)
+        result["order"] = q
 
     result.update(
         {
             "f_series": format_series(a),
+            "input_coefficients": [str(c) for c in a],
+            "input_derivatives": [str(d) for d in to_derivatives(a)],
             "series": format_series(b),
             "latex": format_series(b, style="latex"),
             "coefficients": [str(c) for c in b],
             "derivatives": [str(d) for d in to_derivatives(b)],
+            # グラフ・表示用の近似値 (虚数を含むときは null)
+            "numeric": {
+                "f": _floats(a),
+                "result": _floats(b),
+                # 検算用: q 乗根 (これを q 回合成すると f に戻る)
+                "root": _floats(root),
+                "root_order": q,
+            },
         }
     )
+    if f_expr is not None and params.get("samples", "").lower() in ("1", "true", "yes", "on"):
+        result["f_samples"] = _samples(f_expr)
 
     if params.get("desmos", "").lower() in ("1", "true", "yes", "on"):
         try:

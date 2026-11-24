@@ -101,3 +101,11 @@ def test_fractional_iterate():
     assert fractional_iterate(a, R(3, 2)) == compose(a, half)
     third = fractional_iterate(a, R(1, 3))
     assert fractional_iterate(a, R(2, 3)) == compose(third, third)
+
+
+@pytest.mark.parametrize("expr,m", [("2*x + x**2", 3), ("2*x + x**2", 2), ("3*x + x**3", 4), ("-2*x + x**2", 3)])
+def test_irrational_multiplier_number_field(expr, m):
+    a = from_expr(expr, 7)
+    b = functional_root(a, m)
+    assert sp.simplify(b[1] ** m - a[1]) == 0
+    assert all(sp.simplify(c) == 0 for c in verify(a, b, m))

@@ -115,6 +115,12 @@ def functional_root(a: Sequence, m: int = 2, *, multiplier=None) -> Series:
             )
     b[1] = b1
 
+    if all(sp.sympify(c).is_Rational for c in a):
+        # 有理数係数なら代数体 Q(b_1) の要素のまま計算する (速く、式も膨らまない)
+        algebraic = _root_in_number_field(a, m, b1)
+        if algebraic is not None:
+            return algebraic
+
     for n in range(2, N + 1):
         lam = _linear_factor(b1, n, m)
         if _is_zero(lam):
@@ -126,6 +132,55 @@ def functional_root(a: Sequence, m: int = 2, *, multiplier=None) -> Series:
         h = iterate(b[: n + 1], m, n)
         b[n] = clean((a[n] - h[n]) / lam)
     return b
+
+
+def _root_in_number_field(a: Series, m: int, b1: sp.Expr) -> Series | None:
+    """有理数係数の f について、Q(b_1) (b_1 が有理数なら Q) の中で高速に厳密計算する。
+
+    sympy の汎用の式 (Expr) ではなく、代数体の要素 (QQ<b_1>) のまま演算するので、
+    2^(1/3) のような無理数が出ても式が膨らまない。b_1 が代数的数でない場合は None。
+    """
+    try:
+        K = sp.QQ if b1.is_Rational else sp.QQ.algebraic_field(b1)
+    except (NotImplementedError, ValueError, sp.polys.polyerrors.PolynomialError):
+        return None
+    N = len(a) - 1
+    A = [K.convert(sp.Rational(c)) for c in a]
+    zero, one = K.zero, K.one
+    t = K.from_sympy(b1)
+
+    def mul(P, Q, L):
+        R = [zero] * L
+        for i, p in enumerate(P[:L]):
+            if not p:
+                continue
+            for j, q in enumerate(Q[: L - i]):
+                if q:
+                    R[i + j] += p * q
+        return R
+
+    def compose(outer, inner, L):
+        R = [zero] * L
+        for k in range(min(len(outer), L) - 1, -1, -1):
+            R = mul(R, inner, L)
+            R[0] += outer[k]
+        return R
+
+    b = [zero] * (N + 1)
+    b[1] = t
+    for n in range(2, N + 1):
+        lam = sum((t**j * t ** (n * (m - 1 - j)) for j in range(m)), zero)
+        if not lam:
+            raise FunctionalRootError(
+                f"n={n} で b_{n} の係数 λ_{n} が 0 になり、解が一意に決まりません "
+                f"(g'(0) = {b1})。"
+            )
+        # b_n = 0 のまま g^[m] を n 次まで計算し、x^n の係数を見る
+        h = [zero, one] + [zero] * (n - 1)
+        for _ in range(m):
+            h = compose(b[: n + 1], h, n + 1)
+        b[n] = (A[n] - h[n]) / lam
+    return [sp.expand(K.to_sympy(c)) for c in b]
 
 
 def functional_sqrt(a: Sequence, *, multiplier=None) -> Series:
