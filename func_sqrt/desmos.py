@@ -1,6 +1,6 @@
 """計算結果を Desmos のグラフ (共有リンク) にする。
 
-f(x) と g(x)、検算用の g(g(x)) (m 乗根なら g を m 回合成したもの) を描いた
+f(x) と g(x)、検算用の g(g(x)) (m 乗根なら g を m 回合成したもの) とその誤差 |g(g(x)) - f(x)| を描いた
 Desmos グラフを保存し、``https://www.desmos.com/calculator/<id>`` を返す。
 
 注意: 保存には Desmos のサイト内部で使われている非公開 API
@@ -29,7 +29,7 @@ __all__ = ["DesmosError", "series_latex", "expr_latex", "build_state", "create_l
 SAVE_URL = "https://www.desmos.com/api/v1/calculator-shared/save"
 CALC_URL = "https://www.desmos.com/calculator/"
 
-COLORS = {"f": "#c74440", "g": "#2d70b3", "check": "#388c46"}
+COLORS = {"f": "#c74440", "g": "#2d70b3", "check": "#388c46", "error": "#6042a6"}
 
 
 class DesmosError(RuntimeError):
@@ -97,19 +97,10 @@ def build_state(
     order: 関数的 m 乗根の m (g を m 回合成した検算用の曲線を描く)
     iterate: 分数回反復のとき 'p/q' (検算用の曲線は描かない)
     """
-    N = len(b) - 1
     f_latex = expr_latex(f_expr) if f_expr is not None else series_latex(a)
+    g_name = "h" if iterate is not None else "g"
     items = []
 
-    if iterate is not None:
-        title = f"f^{{[{iterate}]}} のテイラー展開 ({N} 次まで)"
-        g_name = "h"
-    else:
-        what = "関数的平方根" if order == 2 else f"関数的 {order} 乗根"
-        title = f"f の{what} g のテイラー展開 ({N} 次まで)"
-        g_name = "g"
-
-    items.append({"type": "text", "id": "title", "text": title + "  — func_sqrt で生成"})
     items.append(
         {"type": "expression", "id": "f", "color": COLORS["f"], "latex": f"f(x)={f_latex}"}
     )
@@ -134,11 +125,13 @@ def build_state(
                 "latex": nested,
             }
         )
+        # 検算の誤差 |g^[m](x) - f(x)| (0 に近いほど正確)
         items.append(
             {
-                "type": "text",
-                "id": "note",
-                "text": f"破線 = g を {order} 回合成したもの (原点付近で f と重なれば OK)",
+                "type": "expression",
+                "id": "error",
+                "color": COLORS["error"],
+                "latex": rf"\left|{nested}-f(x)\right|",
             }
         )
 

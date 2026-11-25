@@ -23,12 +23,15 @@ def test_build_state_square_root():
     assert latex[0] == r"f(x)=\sinh\left(x \right)"
     assert latex[1].startswith(r"g(x)=x + \frac{1}{12} x^{3}")
     assert latex[2] == "g(g(x))"
+    assert latex[3] == r"\left|g(g(x))-f(x)\right|"
+    assert all(e["type"] == "expression" for e in state["expressions"]["list"])  # 説明文は付けない
 
 
 def test_build_state_cube_root_and_iterate():
     a = from_expr("exp(x)-1", 4)
     state = build_state(a, functional_root(a, 3), order=3)
     assert any(e.get("latex") == "g(g(g(x)))" for e in state["expressions"]["list"])
+    assert any(e.get("latex") == r"\left|g(g(g(x)))-f(x)\right|" for e in state["expressions"]["list"])
     state = build_state(a, a, order=None, iterate="3/2")
     latex = [e.get("latex", "") for e in state["expressions"]["list"]]
     assert any(s.startswith("h(x)=") for s in latex)
@@ -48,7 +51,7 @@ def test_web_desmos_param():
 
     status, body = handle({"f": "sinh(x)", "n": "5", "desmos": "1"}, desmos_link=fake_link)
     assert status == 200 and body["desmos"] == "https://www.desmos.com/calculator/test"
-    assert seen["state"]["expressions"]["list"][1]["latex"].startswith("f(x)=")
+    assert seen["state"]["expressions"]["list"][0]["latex"].startswith("f(x)=")
 
     status, body = handle({"f": "sinh(x)", "n": "5"}, desmos_link=fake_link)
     assert "desmos" not in body
