@@ -121,13 +121,6 @@ curl "https://api.naisu.moe/func_sqrt?f=sinh(x)&n=11"
 
 `λ_n = 0`（`f'(0) = 1` で `g'(0) = -1` など）のときは決まりません
 
-## 開発
-
-```bash
-pip install -e ".[dev]"
-pytest
-```
-
 ## ライセンス
 
 MIT

@@ -17,15 +17,8 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Mathematics",
 ]
 
-[project.optional-dependencies]
-dev = ["pytest>=7"]
-
 [project.scripts]
 func-sqrt = "func_sqrt.cli:main"
 
 [tool.setuptools]
 packages = ["func_sqrt"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests", "func_sqrt"]
-addopts = "--doctest-modules"
