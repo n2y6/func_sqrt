@@ -106,8 +106,6 @@ curl "https://api.naisu.moe/func_sqrt?f=sinh(x)&n=11"
 
 `https://api.naisu.moe/` で使い方を返す
 
-Desmos のリンク作成は非公式の API を使っているので、そのうち動かなくなるかもしれない
-
 ## 仕組み
 
 `g(x) = b_1 x + b_2 x^2 + …` とおいて、`g^[m]` と `f` の係数を低次から比べる
