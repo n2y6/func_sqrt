@@ -28,11 +28,11 @@ from .series import from_derivatives, from_expr, iterate, to_derivatives
 __all__ = ["ApiError", "LIMITS", "safe_parse", "handle", "usage"]
 
 LIMITS = {
-    "max_degree": 20,
+    "max_degree": 30,
     "max_order": 6,
     "max_iterate_part": 6,
     "max_input_length": 300,
-    "max_list_items": 21,
+    "max_list_items": 31,
 }
 
 X = sp.Symbol("x")

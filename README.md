@@ -99,7 +99,7 @@ curl "https://api.naisu.moe/func_sqrt?f=sinh(x)&n=11"
 | パラメータ | |
 | --- | --- |
 | `f` | 式（`derivs` / `coeffs` でも可） |
-| `n` | 次数（最大 20） |
+| `n` | 次数（最大 30） |
 | `order` | m 乗根の m（最大 6） |
 | `iterate` | `p/q` |
 | `multiplier` | g'(0) |
