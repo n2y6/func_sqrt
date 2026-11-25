@@ -1,6 +1,6 @@
 # func_sqrt
 
-関数的平方根 `g(g(x)) = f(x)` のテイラー展開を、分数と根号のまま厳密に求める
+関数的平方根 `g(g(x)) = f(x)` のテイラー展開を、分数と根号のまま厳密に求めます
 
 [naisu.moe/func_sqrt](https://naisu.moe/func_sqrt/)
 
@@ -15,11 +15,11 @@ x + (1/12)x^3 - (1/160)x^5 + (53/40320)x^7 - (23/71680)x^9 + (92713/1277337600)x
 | 関数的 m 乗根 | `g^[m] = f` | `--order m` |
 | 分数回反復 | `f^[p/q]` | `--iterate p/q` |
 
-`f(0) = 0` かつ `f'(0) ≠ 0` の関数に対応
+`f(0) = 0` かつ `f'(0) ≠ 0` の関数に対応しています
 
 ## インストール
 
-Python 3.9+ と [sympy](https://www.sympy.org/)
+Python 3.9+ と [sympy](https://www.sympy.org/) が必要です
 
 ```bash
 pip install -e .
@@ -63,7 +63,7 @@ python -m func_sqrt "4*x + x**2" -n 5 --multiplier -2  # g'(0) = -2 の枝
 | `--check` | 合成して f に戻るか検算 |
 | `--desmos` | Desmos のグラフを作る |
 
-式が `-` で始まるときは `--` の後に置く（`python -m func_sqrt -- "-8*x + x**2"`）
+式が `-` で始まるときは `--` の後に置いてください（`python -m func_sqrt -- "-8*x + x**2"`）
 
 ## Python
 
@@ -77,7 +77,7 @@ functional_root(a, 3)
 fractional_iterate(a, "3/2")
 ```
 
-級数の演算（`compose`, `iterate`, `inverse` など）は `func_sqrt.series` に
+級数の演算（`compose`, `iterate`, `inverse` など）は `func_sqrt.series` にあります
 
 ## Web API
 
@@ -104,11 +104,11 @@ curl "https://api.naisu.moe/func_sqrt?f=sinh(x)&n=11"
 | `multiplier` | g'(0) |
 | `desmos` | `1` で Desmos のリンクを付ける |
 
-`https://api.naisu.moe/` で使い方を返す
+`https://api.naisu.moe/` を開くと使い方を返します
 
 ## 仕組み
 
-`g(x) = b_1 x + b_2 x^2 + …` とおいて、`g^[m]` と `f` の係数を低次から比べる
+`g(x) = b_1 x + b_2 x^2 + …` とおいて、`g^[m]` と `f` の係数を低次から比べます
 
 `b_1` は `f'(0)` の m 乗根で、`n ≥ 2` では `x^n` の係数が `b_n` の一次式
 
@@ -116,9 +116,9 @@ curl "https://api.naisu.moe/func_sqrt?f=sinh(x)&n=11"
 λ_n b_n + (b_1, …, b_{n-1} で決まる項),   λ_n = Σ_{j=0}^{m-1} b_1^j b_1^{n(m-1-j)}
 ```
 
-になるので、`b_n` が一つに決まる
+になるので、`b_n` が一つに決まります
 
-`λ_n = 0`（`f'(0) = 1` で `g'(0) = -1` など）のときは決まらない
+`λ_n = 0`（`f'(0) = 1` で `g'(0) = -1` など）のときは決まりません
 
 ## 開発
 
