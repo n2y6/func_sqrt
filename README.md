@@ -105,7 +105,7 @@ curl "https://api.naisu.moe/func_sqrt?f=sinh(x)&n=11"
 | `multiplier` | g'(0) |
 | `desmos` | `1` で Desmos のリンクを付ける |
 
-`https://api.naisu.moe/` を開くと使い方を返します
+`https://api.naisu.moe/func_sqrt` をパラメータなしで開くと使い方を返します
 
 ## 仕組み
 

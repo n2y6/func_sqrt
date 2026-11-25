@@ -173,7 +173,7 @@ def _samples(expr) -> dict | None:
 
 
 def usage() -> dict:
-    """API の説明 (ルートにアクセスしたときに返す)。"""
+    """API の説明 (/func_sqrt にパラメータなしでアクセスしたときに返す)。"""
     return {
         "name": "func_sqrt API",
         "version": __version__,
