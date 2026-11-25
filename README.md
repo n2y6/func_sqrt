@@ -3,7 +3,7 @@
 `g(g(x)) = f(x)` を満たす関数 **g（f の関数的平方根）** のテイラー展開を、
 `x = 0` のまわりで **厳密に**（有理数・根号のまま）求めるツールです。
 
-**ブラウザで試す → [naisu.moe/func_sqrt](https://naisu.moe/func_sqrt/)**（インストール不要。グラフ・Desmos リンク付き）
+**ブラウザで試す → [naisu.moe/func_sqrt](https://naisu.moe/func_sqrt/)**
 
 さらに次のような一般化にも対応しています。
 
