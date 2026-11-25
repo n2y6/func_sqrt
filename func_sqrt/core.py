@@ -103,7 +103,7 @@ def functional_root(a: Sequence, m: int = 2, *, multiplier=None) -> Series:
     if N == 0:
         return b
     if _is_zero(a[1]):
-        raise FunctionalRootError("f'(0) = 0 の場合はこの方法では一意に決まりません。")
+        raise FunctionalRootError("f'(0) = 0 の場合、この方法では適切な展開ができません。")
 
     if multiplier is None:
         b1 = principal_root(a[1], m)
