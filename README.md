@@ -22,7 +22,8 @@ x + (1/12)x^3 - (1/160)x^5 + (53/40320)x^7 - (23/71680)x^9 + (92713/1277337600)x
 Python 3.9+ と [sympy](https://www.sympy.org/) が必要です
 
 ```bash
-pip install -e .
+pip install -r requirements.txt   # 依存だけ入れる
+pip install -e .                   # func-sqrt コマンドとして入れる
 ```
 
 ## コマンドライン
