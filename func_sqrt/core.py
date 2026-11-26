@@ -166,6 +166,10 @@ def _root_in_number_field(a: Series, m: int, b1: sp.Expr) -> Series | None:
             R[0] += outer[k]
         return R
 
+    a1 = sp.Rational(a[1])
+    if a1 not in (1, -1):
+        return _commuting_root(A, K, t, N, zero)
+
     b = [zero] * (N + 1)
     b[1] = t
     for n in range(2, N + 1):
@@ -180,6 +184,60 @@ def _root_in_number_field(a: Series, m: int, b1: sp.Expr) -> Series | None:
         for _ in range(m):
             h = compose(b[: n + 1], h, n + 1)
         b[n] = (A[n] - h[n]) / lam
+    return [sp.expand(K.to_sympy(c)) for c in b]
+
+
+def _commuting_root(A, K, t, N, zero) -> Series:
+    """f'(0) = a_1 が ±1 でないときの高速版: g∘f = f∘g から係数を順に決める。
+
+    a_1 が 1 の累乗根でなければ、f と入れ替え可能 (g∘f = f∘g) で g'(0) = b_1 の級数は
+    ただ 1 つに決まる。b_1^m = a_1 なら g^[m] も f と入れ替え可能で g^[m]'(0) = a_1 なので、
+    一意性から g^[m] = f、つまり g が求める関数的 m 乗根になる (m 回合成しなくてよい)。
+
+    x^n の係数を比べると
+        [x^n] g∘f = Σ_k b_k [x^n] f^k        (f^k は有理数なので最初に計算しておける)
+        [x^n] f∘g = Σ_j a_j [x^n] g^j
+    で、b_n が入るのは g∘f 側の b_n a_1^n と f∘g 側の a_1 b_n だけなので
+        b_n (a_1^n - a_1) = Σ_{j≥2} a_j [x^n] g^j - Σ_{k<n} b_k [x^n] f^k
+    となる。[x^n] g^j (j ≥ 2) は b_1, ..., b_{n-1} だけで決まるので、低次から順に求まる。
+    """
+    a1 = A[1]
+    # F[k][n] = [x^n] f^k
+    F = [[zero] * (N + 1) for _ in range(N + 1)]
+    F[0][0] = K.one
+    for k in range(1, N + 1):
+        prev, cur = F[k - 1], F[k]
+        for n in range(k, N + 1):
+            s = zero
+            for i in range(1, n - k + 2):
+                if A[i] and prev[n - i]:
+                    s += A[i] * prev[n - i]
+            cur[n] = s
+    # G[j][n] = [x^n] g^j (b が決まるたびに埋めていく)
+    G = [[zero] * (N + 1) for _ in range(N + 1)]
+    G[0][0] = K.one
+    b = [zero] * (N + 1)
+    b[1] = t
+    G[1][1] = t
+    a1_pow = a1
+    for n in range(2, N + 1):
+        a1_pow *= a1                       # a_1^n
+        for j in range(2, n + 1):          # [x^n] g^j は b_1..b_{n-1} だけで決まる
+            s = zero
+            prev = G[j - 1]
+            for i in range(1, n - j + 2):
+                if b[i] and prev[n - i]:
+                    s += b[i] * prev[n - i]
+            G[j][n] = s
+        rhs = zero
+        for j in range(2, n + 1):
+            if A[j] and G[j][n]:
+                rhs += A[j] * G[j][n]
+        for k in range(1, n):
+            if b[k] and F[k][n]:
+                rhs -= b[k] * F[k][n]
+        b[n] = rhs / (a1_pow - a1)
+        G[1][n] = b[n]
     return [sp.expand(K.to_sympy(c)) for c in b]
 
 
